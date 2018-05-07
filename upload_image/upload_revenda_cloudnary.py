@@ -6,6 +6,10 @@ import os
 import sys
 import re
 
+from upload_image.resource.dao import salvar_url_produto
+
+NAME_IMG = re.compile(r'(?:[a-zA-Z-]+)([0-9]*)(?:[-0-9]*)')
+
 SIZE = 250, 250
 
 DEFAULT = dict(path_image_formatted=".")
@@ -17,6 +21,14 @@ conf = dict(config['CONFIG'])
 cloudinary.config(cloud_name=conf['cloud_name'],
                   api_key=conf['api_key'],
                   api_secret=conf['api_secret'])
+
+
+def pegar_codigo_produto(nome_imagem: str) -> int:
+    codigo = NAME_IMG.match(nome_imagem)
+    if codigo:
+        return int(codigo.groups()[0])
+    else:
+        return None
 
 
 def ler_imagem(path_imagem: str) -> Image:
@@ -41,7 +53,7 @@ def transforma_fundo_transparente(image: Image, nome_imagem: str) -> None:
 
 if __name__ == '__main__':
     try:
-        path_images = sys.argv[1]
+        path_images = "C:\\Users\\diego.delmiro\\Pictures\\Allize"
         for infile in os.listdir(path_images):
             if re.search(r'(\w*)\.(jpg|png)', infile, re.IGNORECASE):
                 transforma_fundo_transparente(ler_imagem(os.path.join(path_images, infile)), infile)
@@ -49,7 +61,8 @@ if __name__ == '__main__':
                     f = image.read()
                     img_src = bytearray(f)
                 if conf["upload"] == 'true':
-                    upload(img_src, use_filename=True, public_id="{}/{}".format(conf["revenda"], infile))
+                    _upload = upload(img_src, use_filename=True, public_id="{}/{}".format(conf["revenda"], infile))
+                    salvar_url_produto(_upload['secure_url'], pegar_codigo_produto(infile))
                     os.remove(os.path.join(conf["path_image_formatted"], '{}.png'.format(infile.split('.')[0])))
     except IndexError:
         print("Por favor digite o caminho das imagens")
